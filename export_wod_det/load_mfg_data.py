@@ -1,6 +1,7 @@
 import csv
 import time
 import pyodbc
+import sys
 from datetime import datetime
 
 #print(time.time())
@@ -77,24 +78,24 @@ def get_mfg_struct():
             result.append((column_decl[:delimiter_index].strip(), column_decl[delimiter_index + 1:].strip()))
     return result
 
-def bulk_insert(file_name):
-    cnxn = pyodbc.connect(driver='{SQL Server}', server='(local)', database='test_ins',               
+def bulk_insert(file_name, db_name, table_name):
+    cnxn = pyodbc.connect(driver='{SQL Server}', server='(local)', database='{}'.format(db_name),               
                trusted_connection='yes')    
     crsr = cnxn.cursor()
-    sql = "TRUNCATE TABLE test_ins.[dbo].wod_det_py;"
+    sql = "TRUNCATE TABLE {0}.[dbo].{1};".format(db_name, table_name)
     crsr.execute(sql)
     cnxn.commit()
     
     sql = """
     SET DATEFORMAT DMY;
-    BULK INSERT test_ins.[dbo].[wod_det_py]
+    BULK INSERT {0}.[dbo].[{1}]
         FROM '""" + file_name + """'
         WITH (
         DATAFILETYPE = 'char',
         FIELDTERMINATOR = '\t',
         ROWTERMINATOR = '0x0A'
         );
-    """
+    """.format(db_name, table_name)
     crsr.execute(sql)
     cnxn.commit()
     
@@ -104,13 +105,21 @@ def bulk_insert(file_name):
 #print(get_1c_struct())
 #print(get_mfg_struct())
 
-input_file = r'D:\Work\1C\TCS\MFG\bulk\1C_edp_20170427200052_wod_det\1C_edp_20170427200052_wod_det'
-output_file = r'D:\Work\1C\TCS\MFG\bulk\1C_edp_20170427200052_wod_det\1C_edp_20170427200052_wod_det_dest'
-
-print("begin conversion: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
-convert_file(input_file, output_file)
-print("end conversion: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
-print("begin bulk insert: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
-bulk_insert(output_file)
-print("end bulk insert: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
+if __name__ == "__main__":
+    
+    #input_file = r'D:\Work\1C\TCS\MFG\bulk\1C_edp_20170427200052_wod_det\1C_edp_20170427200052_wod_det'
+    #output_file = r'D:\Work\1C\TCS\MFG\bulk\1C_edp_20170427200052_wod_det\1C_edp_20170427200052_wod_det_dest'
+    db_name = sys.argv[1]
+    table_name = sys.argv[2]
+    input_file = sys.argv[3]
+    output_file = input_file + '_dest'
+    
+    print(db_name, table_name, input_file, output_file)
+    
+    #print("begin conversion: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
+    #convert_file(input_file, output_file)
+    #print("end conversion: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
+    #print("begin bulk insert: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
+    #bulk_insert(output_file, db_name, table_name)
+    #print("end bulk insert: " + datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S"))
 
